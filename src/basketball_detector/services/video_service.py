@@ -6,7 +6,7 @@ from google import genai
 from PIL import Image
 
 
-model_yolo = YOLO("yolov8n.pt")
+model_yolo = YOLO("yolo26n.pt")
 GEMINI_API_KEY = os.getenv("API_KEY_GEMINI")
 client = genai.Client(api_key="AIzaSyD04q_SRQceXdLxgxWofcerqANdRdd-iQ0")
 
@@ -47,8 +47,8 @@ def process_video(video_path = 0):
 
                 if class_id == 32 and confidence > 0.5:  # Clase 32 es balon de baloncesto
                     cropped_frame = frame[y1:y2, x1:x2]
-                    decision = analize_frame_with_llm(cropped_frame)
-                    print(decision)
+                    # decision = analize_frame_with_llm(cropped_frame)
+                    decision = "ENCESTA"  # Simulación de decisión para pruebas
                     decisions.append(decision)
 
         cv2.imshow('Video', frame)
