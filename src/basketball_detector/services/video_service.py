@@ -8,7 +8,7 @@ from PIL import Image
 
 model_yolo = YOLO("yolo26n.pt")
 GEMINI_API_KEY = os.getenv("API_KEY_GEMINI")
-client = genai.Client(api_key="AIzaSyD04q_SRQceXdLxgxWofcerqANdRdd-iQ0")
+client = genai.Client(api_key="")
 
 
 def analize_frame_with_llm(frame):
