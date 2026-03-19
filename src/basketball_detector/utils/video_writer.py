@@ -2,10 +2,11 @@ import cv2
 import numpy as np
 
 from typing import List
+from basketball_detector.utils.manage_temp_files import TempFileVideosManager
 
 
 class VideoWriter:
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str | None = None):
         self.file_path = file_path
 
     def write_video(self, frames: List[np.ndarray], fps: float = 4.0, height: int = 0, width: int = 0):
@@ -16,6 +17,10 @@ class VideoWriter:
             height, width = frames[0].shape[:2]
 
         fourcc = cv2.VideoWriter.fourcc(*'mp4v')
+
+        if not self.file_path:
+            raise ValueError("No se ha especificado un file_path para guardar el video")
+
         out = cv2.VideoWriter(self.file_path, fourcc, fps, (width, height))
 
         for frame in frames:

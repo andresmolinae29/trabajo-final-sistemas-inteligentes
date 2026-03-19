@@ -71,7 +71,7 @@ class GoogleModelClient():
 
     def upload_video(self, video_path: str):
 
-        logger.info("☁️ Subiendo video a Gemini File API...")
+        logger.info("Subiendo video a Gemini File API...")
         video_file = self.client.files.upload(file=video_path)
         return video_file
     
@@ -83,13 +83,13 @@ class GoogleModelClient():
             video_file = self.client.files.get(name=video_file.name) # type: ignore
 
         if video_file.state.name == "FAILED": # type: ignore
-            logger.error("❌ Falló el procesamiento del video en Gemini.")
+            logger.error("Falló el procesamiento del video en Gemini.")
             return False
         
         return True
     
     def analyze_video(self, video_file: genai.types.File, prompt: str = PromptProvider.get_prompt()) -> genai.types.GenerateContentResponse:
-        logger.info("🔮 Analizando video...")
+        logger.info("Analizando video...")
         response = self.client.models.generate_content(
             model=GEMINI_MODEL_NAME,
             contents=[video_file, prompt]
@@ -102,19 +102,19 @@ class GoogleModelClient():
     def parse_response(self, response: genai.types.GenerateContentResponse) -> VideoResponse:
         try:
             if not response or not response.text:
-                logger.warning("⚠️ Gemini no devolvió una respuesta válida.")
+                logger.warning("Gemini no devolvió una respuesta válida.")
                 return VideoResponse(**ErrorCaseHandler.get_error_case("processing_failed"))
 
             result_text = response.text.strip().replace("```json", "").replace("```", "")
             response_json = json.loads(result_text)
 
-            logger.debug(f"🧠 Razonamiento: {response_json.get('razonamiento')}")
+            logger.debug(f"Razonamiento: {response_json.get('razonamiento')}")
             return VideoResponse(**response_json)
         except json.JSONDecodeError:
-            logger.error("❌ Gemini no devolvió un JSON válido.")
+            logger.error("Gemini no devolvió un JSON válido.")
             return VideoResponse(**ErrorCaseHandler.get_error_case("invalid_json"))
         except Exception as e:
-            logger.error(f"❌ Ocurrió un error al procesar la respuesta de Gemini: {e}")
+            logger.error(f"Ocurrió un error al procesar la respuesta de Gemini: {e}")
             return VideoResponse(**ErrorCaseHandler.get_error_case("exception"))
 
 
@@ -153,23 +153,27 @@ class GoogleModelWrapper(ModelWrapperBase):
     def __predict(self, frames: List[np.ndarray]) -> VideoResponse:
 
         if not frames or not isinstance(frames, list) or len(frames) == 0:
-            logger.warning("⚠️ No hay frames válidos para procesar")
+            logger.warning("No hay frames válidos para procesar")
             return VideoResponse(**ErrorCaseHandler.get_error_case("no_frames"))
 
-        logger.info(f"🎞️ Procesando secuencia de {len(frames)} frames en video MP4...")
+        logger.info(f"Procesando secuencia de {len(frames)} frames en video MP4...")
         sampled_frames_shape = self.__frames_evaluation_shape(frames)
 
+        self.temp_file_manager.set_names()
+        self.video_writer.file_path = self.temp_file_manager.original_video_path
         self.video_writer.write_video(frames, fps=self._FPS, height=sampled_frames_shape[0], width=sampled_frames_shape[1])
 
-        logger.info("☁️ Subiendo video a Gemini File API...")
+        logger.info("Subiendo video a Gemini File API...")
         video_file = self.client.upload_video(self.video_writer.file_path)
 
         video_ready = self.client.check_video_processing(video_file)
         if not video_ready:
             return VideoResponse(**ErrorCaseHandler.get_error_case("processing_failed"))
         
-        response = self.client.analyze_video(video_file)       
-        return self.client.parse_response(response)
+        response = self.client.analyze_video(video_file)
+        parsed_response = self.client.parse_response(response)
+        parsed_response.video_name = self.temp_file_manager.original_file  
+        return parsed_response
 
     def llm_predict(self, frame, *args, **kwargs) -> VideoResponse:
         return self.__predict(frame, *args, **kwargs)

@@ -24,7 +24,7 @@ class GoogleVideoModelFactory:
     def create() -> ModelWrapperBase:
         client = GoogleModelClient()
         manager = TempFileVideosManager()
-        writer = VideoWriter(manager.temp_video_path)
+        writer = VideoWriter()
         
         wrapper = (GoogleModelWrapperBuilder()
             .set_google_client(client)

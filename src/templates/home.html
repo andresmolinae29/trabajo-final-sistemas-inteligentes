@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Basketball Video Processor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        
+    </style>
+</head>
+<body>
+    <h1>Subir video de baloncesto</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="video/mp4" required>
+        <button type="submit">Procesar</button>
+    </form>
+
+    {% if result %}
+        <div class="results-flex">
+            <div class="original-video-col">
+                <h2>Video original</h2>
+                <video width="260" height="180" controls>
+                    <source src="{{ result.original }}" type="video/mp4">
+                </video>
+            </div>
+            <div class="mini-videos-col">
+                <h2>Capturas y resultados</h2>
+                <div class="mini-videos-grid">
+                    {% for mini in result.mini_videos %}
+                    <div class="mini-card">
+                        <video controls>
+                            <source src="{{ mini.path }}" type="video/mp4">
+                        </video>
+                        <div class="mini-details">
+                            <div><strong>Resultado:</strong> {{ mini.result if mini.result is mapping else {} }}</div>
+                            <div><strong>Confianza:</strong> {{ mini.confidence_percentage if mini.confidence_percentage is mapping else {} }}%</div>
+                            <div><strong>Razonamiento:</strong> <span style="font-size:0.97em; color:#555;">{{ mini.reasoning if mini.reasoning is mapping else {} }}</span></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</body>
+</html>
