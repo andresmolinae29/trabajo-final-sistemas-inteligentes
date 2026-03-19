@@ -1,49 +1,21 @@
+import numpy as np
+
 from ultralytics import YOLO, YOLOE
 from basketball_detector.models.detection_model import DetectionResult
 
 
 MODEL: YOLOE = YOLO("yoloe-26s-seg.pt") # type: ignore
 PIXELS_PER_CM = 4.0
-CONFIDENCE_THRESHOLDS = {
-    "Basketball ball": 0.05,
-    # "Basketball hoop": 0.05
-}
 
 
-class DetectionService:
-    OBJECTS = list(CONFIDENCE_THRESHOLDS.keys())
-    PROXIMITY_THRESHOLD_CM = 20.0
+class ObjectDetector:
 
-    def __init__(self, model: YOLOE = MODEL):
+    def __init__(self, model: YOLOE) -> None:
         self.model = model
-        self.model.set_classes(self.OBJECTS)
 
-    def _is_in_top_quarter(self, bbox: tuple[int, int, int, int], image_height: int) -> bool:
-        _, y1, _, y2 = bbox
-        center_y = (y1 + y2) / 2
-        return center_y <= image_height / 4
-
-    def detect_objects(self, frame, conf_threshold: float = 0.05, top_quarter_only: bool = True) -> list[DetectionResult]:
-        """
-        Detecta objetos en el frame aplicando umbrales de confianza específicos por objeto.
-        
-        Args:
-            frame: Frame de video
-            image_height: Altura de la imagen
-            conf_threshold: Umbral global mínimo (se usa config por clase si es mayor)
-            
-        Returns:
-            Lista de detecciones filtradas por confianza
-        """
+    def detect_objects(self, frame: np.ndarray, conf_threshold: float = 0.05) -> list[DetectionResult]:
         results = self.model.predict(frame, conf=conf_threshold)
         detections = []
-
-        image_height = None
-        if hasattr(frame, "shape") and len(frame.shape) >= 2:
-            image_height = frame.shape[0]
-        elif hasattr(frame, "height"):
-            image_height = frame.height
-        
         for result in results:
             if result.boxes is None:
                 continue
@@ -51,14 +23,7 @@ class DetectionService:
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 confidence = box.conf[0]
                 class_id = int(box.cls[0])
-                label = self.OBJECTS[class_id]
-
-                if top_quarter_only and image_height is not None:
-                    if not self._is_in_top_quarter((x1, y1, x2, y2), image_height):
-                        continue
-
-                if label in [d.label for d in detections]:
-                    continue
+                label = self.model.names[class_id]
 
                 detections.append(
                     DetectionResult(
@@ -70,18 +35,28 @@ class DetectionService:
         
         return detections
     
-    def balled_ball_in_frame(self, detections: list[DetectionResult]) -> bool:
-        """Verifica si el balón está presente en la imagen."""
-        return any(d.label == "Basketball ball" for d in detections)
-    
-    def hoop_and_ball_in_frame(self, detections: list[DetectionResult]) -> bool:
-        """Verifica si tanto el balón como el aro están presentes en la imagen."""
-        labels = [d.label for d in detections]
-        return all(obj in labels for obj in self.OBJECTS)
 
-    def distance_between_two_objects(
-        self, obj1: DetectionResult, obj2: DetectionResult
-    ) -> float:
+class ObjectFilter:
+
+    @staticmethod
+    def is_in_top_quarter(bbox: tuple[float, float, float, float], image_height: int) -> bool:
+        _, y1, _, y2 = bbox
+        center_y = (y1 + y2) / 2
+        return center_y <= image_height / 4
+    
+
+class ObjectValidator:
+
+    @staticmethod
+    def is_valid_detection(detections: list[DetectionResult], target_label: str) -> bool:
+        """Verifica si el objeto objetivo está presente en la lista de detecciones."""
+        return any(d.label == target_label for d in detections)
+    
+
+class DistanceCalculator:
+
+    @staticmethod
+    def distance_between_two_objects(obj1: DetectionResult, obj2: DetectionResult) -> float:
         """Calcula la distancia en PÍXELES entre dos objetos."""
         x1_1, y1_1, x2_1, y2_1 = obj1.bbox
         x1_2, y1_2, x2_2, y2_2 = obj2.bbox
@@ -92,24 +67,63 @@ class DetectionService:
         distance = ((center_x1 - center_x2) ** 2 + (center_y1 - center_y2) ** 2) ** 0.5
         return distance
     
-    def distance_between_two_objects_cm(
-        self, obj1: DetectionResult, obj2: DetectionResult
-    ) -> float:
+    @staticmethod
+    def distance_between_two_objects_cm(obj1: DetectionResult, obj2: DetectionResult) -> float:
         """Calcula la distancia en CENTÍMETROS entre dos objetos."""
-        distance_pixels = self.distance_between_two_objects(obj1, obj2)
+        distance_pixels = DistanceCalculator.distance_between_two_objects(obj1, obj2)
         return distance_pixels / PIXELS_PER_CM
+
+
+class DetectionServiceConfig:
+    """Configura las dependencias del DetectionService."""
     
-    def are_two_objects_close(
-        self, obj1: DetectionResult, obj2: DetectionResult,
-        threshold_cm: float = PROXIMITY_THRESHOLD_CM
-    ) -> bool:
-        """
-        Verifica si dos objetos están cerca (para iniciar evaluación).
-        Retorna True si están a menos de 'threshold_cm' centímetros.
-        """
-        distance_cm = self.distance_between_two_objects_cm(obj1, obj2)
-        return distance_cm < threshold_cm
+    def __init__(self, 
+                 object_detector: ObjectDetector, 
+                 object_filter: ObjectFilter, 
+                 object_validator: ObjectValidator, 
+                 distance_calculator: DistanceCalculator):
+        self.object_detector = object_detector
+        self.object_filter = object_filter
+        self.object_validator = object_validator
+        self.distance_calculator = distance_calculator
 
 
+class BasketballDetectionService:
+
+    def __init__(self, config: DetectionServiceConfig):
+        self.object_detector = config.object_detector
+        self.object_filter = config.object_filter
+        self.object_validator = config.object_validator
+        self.distance_calculator = config.distance_calculator
+
+    def detect_objects(self, frame: np.ndarray) -> list[DetectionResult]:
+        objects = self.object_detector.detect_objects(frame)
+
+        if self.object_validator.is_valid_detection(objects, target_label="Basketball ball") \
+            and self.object_filter.is_in_top_quarter(objects[0].bbox, frame.shape[0]):
+            return objects
+        return []
+    
+
+class DetectionServiceFactory:
+    """Fábrica para crear instancias de BasketballDetectionService con todas sus dependencias."""
+    
+    @staticmethod
+    def create() -> BasketballDetectionService:
+        object_detector = ObjectDetector(MODEL)
+        object_filter = ObjectFilter()
+        object_validator = ObjectValidator()
+        distance_calculator = DistanceCalculator()
+
+        config = DetectionServiceConfig(
+            object_detector=object_detector,
+            object_filter=object_filter,
+            object_validator=object_validator,
+            distance_calculator=distance_calculator
+        )
+
+        return BasketballDetectionService(config)
+
+    
 if __name__ == "__main__":
     pass
