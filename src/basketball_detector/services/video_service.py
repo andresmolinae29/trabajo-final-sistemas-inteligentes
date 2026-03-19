@@ -6,6 +6,9 @@ from basketball_detector.ai_models.models import VideoModel, Qwen2VideoModel, Go
 
 
 class VideoService:
+model_yolo = YOLO("yolo26n.pt")
+GEMINI_API_KEY = os.getenv("API_KEY_GEMINI")
+client = genai.Client(api_key="")
 
     def __init__(self, detection_service: DetectionService, capture_frames: int = 60, video_model: VideoModel = Qwen2VideoModel()):
         self.detection_service = detection_service
@@ -75,8 +78,13 @@ class VideoService:
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     
     video_service = VideoService(DetectionService(), video_model=GoogleVideoModel())
     video_service.process_video(
         r"C:\dev\trabajo-final-sistemas-inteligentes\tests\test_videos\2-video.mp4",
     )
+=======
+    result = process_video("tests/test_videos/first-video.mp4")
+    print(result)
+>>>>>>> b35f2239baa817cbf761165ffe6dfe207fd166f4
