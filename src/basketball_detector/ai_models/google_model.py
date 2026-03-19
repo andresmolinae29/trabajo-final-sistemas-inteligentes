@@ -152,7 +152,7 @@ class GoogleModelWrapper(ModelWrapperBase):
 
     def __predict(self, frames: List[np.ndarray]) -> VideoResponse:
 
-        if not frames or not isinstance(frames, np.ndarray) or len(frames) == 0:
+        if not frames or not isinstance(frames, list) or len(frames) == 0:
             logger.warning("⚠️ No hay frames válidos para procesar")
             return VideoResponse(**ErrorCaseHandler.get_error_case("no_frames"))
 

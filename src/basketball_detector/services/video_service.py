@@ -1,25 +1,22 @@
 import cv2
 import numpy as np
 
-from basketball_detector.services.detection_service import DetectionService
-from basketball_detector.ai_models.models import VideoModel, Qwen2VideoModel, GoogleVideoModel
+from basketball_detector.ai_models import ModelWrapperBase, GoogleVideoModelFactory
+from basketball_detector.services import BasketballDetectionService, DetectionServiceFactory
 
 
 class VideoService:
-model_yolo = YOLO("yolo26n.pt")
-GEMINI_API_KEY = os.getenv("API_KEY_GEMINI")
-client = genai.Client(api_key="")
 
-    def __init__(self, detection_service: DetectionService, capture_frames: int = 60, video_model: VideoModel = Qwen2VideoModel()):
+    def __init__(self, detection_service: BasketballDetectionService, video_model: ModelWrapperBase, capture_frames: int = 60):
         self.detection_service = detection_service
-        self.capture_frames = capture_frames  # Cuántos frames capturar (por defecto 20 = ~3s a 30fps)
+        self.capture_frames = capture_frames
         self.video_model = video_model
 
     def __enhance_frame(self, frame: np.ndarray) -> np.ndarray:
         """Mejora contraste y saturación antes de enviar a Gemini"""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        hsv[:, :, 1] = cv2.multiply(hsv[:, :, 1], 1.5)  
-        hsv[:, :, 2] = cv2.multiply(hsv[:, :, 2], 1.2)
+        hsv[:, :, 1] = cv2.multiply(hsv[:, :, 1], 1.5) # type: ignore
+        hsv[:, :, 2] = cv2.multiply(hsv[:, :, 2], 1.2) # type: ignore
         return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
     def process_video(self, video_path: str | int = 0):
@@ -52,7 +49,7 @@ client = genai.Client(api_key="")
 
             if not capturing:
                 detections = self.detection_service.detect_objects(frame)
-                if self.detection_service.balled_ball_in_frame(detections):
+                if detections:
                     capturing = True
                     captured_frames = []
 
@@ -62,7 +59,7 @@ client = genai.Client(api_key="")
                 # Si completamos los frames requeridos
                 if len(captured_frames) >= self.capture_frames:
                     shot_count += 1
-                    decision = self.video_model.predict(captured_frames)
+                    decision = self.video_model.llm_predict(captured_frames)
                     decisions.append(decision)
                     
                     capturing = False
@@ -78,13 +75,13 @@ client = genai.Client(api_key="")
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     
-    video_service = VideoService(DetectionService(), video_model=GoogleVideoModel())
-    video_service.process_video(
+    basketball_service = DetectionServiceFactory.create()
+    google_video_model = GoogleVideoModelFactory.create()
+
+    video_service = VideoService(basketball_service, google_video_model)
+    decisions = video_service.process_video(
         r"C:\dev\trabajo-final-sistemas-inteligentes\tests\test_videos\2-video.mp4",
     )
-=======
-    result = process_video("tests/test_videos/first-video.mp4")
-    print(result)
->>>>>>> b35f2239baa817cbf761165ffe6dfe207fd166f4
+
+    print(decisions)

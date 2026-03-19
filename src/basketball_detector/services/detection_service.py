@@ -12,6 +12,7 @@ class ObjectDetector:
 
     def __init__(self, model: YOLOE) -> None:
         self.model = model
+        self.model.set_classes(["Basketball ball"])
 
     def detect_objects(self, frame: np.ndarray, conf_threshold: float = 0.05) -> list[DetectionResult]:
         results = self.model.predict(frame, conf=conf_threshold)
