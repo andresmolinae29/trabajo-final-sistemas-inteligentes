@@ -32,9 +32,9 @@
                             <source src="{{ mini.path }}" type="video/mp4">
                         </video>
                         <div class="mini-details">
-                            <div><strong>Resultado:</strong> {{ mini.result if mini.result is mapping else {} }}</div>
-                            <div><strong>Confianza:</strong> {{ mini.confidence_percentage if mini.confidence_percentage is mapping else {} }}%</div>
-                            <div><strong>Razonamiento:</strong> <span style="font-size:0.97em; color:#555;">{{ mini.reasoning if mini.reasoning is mapping else {} }}</span></div>
+                            <div><strong>Resultado:</strong> {{ mini.result }}</div>
+                            <div><strong>Confianza:</strong> {{ mini.confidence_percentage  }}%</div>
+                            <div><strong>Razonamiento:</strong> <span style="font-size:0.97em; color:#555;">{{ mini.reasoning }}</span></div>
                         </div>
                     </div>
                     {% endfor %}

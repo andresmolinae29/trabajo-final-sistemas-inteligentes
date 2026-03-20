@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from basketball_detector.ai_models import GoogleVideoModelFactory
 from basketball_detector.services import DetectionServiceFactory, VideoService
-from basketball_detector.utils import TempFileVideosManager, BASE_DIR, logger
+from basketball_detector.utils import VideoWriter, TempFileVideosManager, BASE_DIR, logger
 
 
 app = FastAPI()
@@ -31,6 +31,7 @@ def home(request: Request, result_id: str | None = None):
 @app.post("/upload")
 def upload_video(request: Request, file: UploadFile = File(...)):
     temp_video_manager = TempFileVideosManager()
+    temp_video_manager.set_names()
     video_path = temp_video_manager.original_video_path
     with open(video_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -45,12 +46,14 @@ def upload_video(request: Request, file: UploadFile = File(...)):
     mini_videos = []
     for _, decision in enumerate(decisions):
 
+        fix_video_path = VideoWriter.fix_mp4_faststart(f"/static/tmp/{decision.video_name}")
+
         mini_videos.append(
             {
-                "path": f"/static/tmp/{decision.video_name}",
-                "result": decision.result,
-                "confidence_percentage": decision.confidence_percentage,
-                "reasoning": decision.reasoning,
+                "path": fix_video_path,
+                "result": str(decision.result),
+                "confidence_percentage": str(decision.confidence_percentage),
+                "reasoning": str(decision.reasoning),
             }
         )
 

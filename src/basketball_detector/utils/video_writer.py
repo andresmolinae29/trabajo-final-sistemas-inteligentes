@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
+import subprocess
 
 from typing import List
-from basketball_detector.utils.manage_temp_files import TempFileVideosManager
+from basketball_detector.utils.manage_temp_files import TempFileVideosManager, BASE_DIR
 
 
 class VideoWriter:
@@ -27,3 +28,18 @@ class VideoWriter:
             out.write(frame)
 
         out.release()
+
+    @staticmethod
+    def fix_mp4_faststart(video_path: str) -> str:
+        if video_path and video_path.endswith('.mp4'):
+            fixed_path = video_path.replace('.mp4', '_faststart.mp4')
+            cmd = [
+                'ffmpeg', '-y', '-i', f"{BASE_DIR}/{video_path}",
+                '-movflags', 'faststart', f"{BASE_DIR}/{fixed_path}"
+            ]
+            try:
+                subprocess.run(cmd, check=True)
+                return fixed_path
+            except Exception as e:
+                print(f'Error al convertir video para faststart: {e}')
+        return video_path
