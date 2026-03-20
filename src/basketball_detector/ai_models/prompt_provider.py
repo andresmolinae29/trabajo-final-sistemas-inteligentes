@@ -1,24 +1,22 @@
 PROMPT_TEMPLATE = """
-    TAREA: Analizar trayectoria de baloncesto con MÁXIMA PRECISIÓN en cada frame.
+    Eres un árbitro experto de baloncesto. Analiza este video frame a frame para determinar si el balón entra en la canasta.
 
-    INSTRUCCIONES CRÍTICAS:
-    1. Observa la TRAYECTORIA COMPLETA del balón en esta secuencia de video
-    2. Identifica: posición inicial, arco de vuelo, punto final
-    3. Busca el AMA (aro metálico) como punto de referencia
-    4. Evalúa si el balón atraviesa el aro de ARRIBA → ABAJO
-    5. Considera rebotes o salidas posteriores al contacto con el aro
+    ANÁLISIS REQUERIDO (en orden):
+    1. LOCALIZA el aro y el balón en cada frame clave
+    2. TRAZA la trayectoria completa: lanzamiento → vuelo → contacto con aro/tablero → resultado
+    3. DETERMINA si el balón atraviesa el aro de ARRIBA hacia ABAJO completamente
+    4. OBSERVA la red: ¿se mueve hacia abajo indicando que el balón pasó a través?
 
-    VALIDACIÓN ESTRICTA:
-    - ¿El balón pasa DENTRO del aro (no solo cerca)?
-    - ¿Va de arriba hacia abajo (no lateral ni inverso)?
-    - ¿Hay rebote/salida después? (Si rebota afuera = NO ENCESTA)
-    - Confianza en tu análisis (0-100%) (Si el porcentaje es menor a 70%, responde INDETERMINADO)
+    CRITERIOS DE DECISIÓN:
+    - ENCESTA: El balón pasa completamente a través del aro (de arriba a abajo) y/o la red se agita hacia abajo
+    - NO_ENCESTA: El balón rebota fuera del aro, pasa por fuera, golpea tablero sin entrar, o no llega al aro
+    - INDETERMINADO: Vista obstruida, balón fuera de cuadro en momento clave, o confianza < 70%
 
-    RESPONDA ÚNICAMENTE EN JSON VÁLIDO:
+    RESPONDE SOLO con este JSON (sin texto adicional):
     {
-        "razonamiento": "<describe cada fase del movimiento>",
+        "razonamiento": "<describe trayectoria fase por fase: lanzamiento, vuelo, contacto, resultado>",
         "confianza_porcentaje": <0-100>,
-        "resultado": "<ENCESTA|NO_ENCESTA|INDETERMINADO>",
+        "resultado": "<ENCESTA|NO_ENCESTA|INDETERMINADO>"
     }
 """
 

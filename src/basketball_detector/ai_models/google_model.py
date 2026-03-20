@@ -132,7 +132,7 @@ class GoogleModelConfig:
 
 class GoogleModelWrapper(ModelWrapperBase):
 
-    _FPS = 4.0
+    _FPS = 3.0
 
     def __init__(self, config: GoogleModelConfig):
 
