@@ -6,6 +6,7 @@ PROMPT_TEMPLATE = """
     2. Identifica: posición inicial, arco de vuelo, punto final
     3. Busca el AMA (aro metálico) como punto de referencia
     4. Evalúa si el balón atraviesa el aro de ARRIBA → ABAJO
+    5. Considera rebotes o salidas posteriores al contacto con el aro
 
     VALIDACIÓN ESTRICTA:
     - ¿El balón pasa DENTRO del aro (no solo cerca)?
